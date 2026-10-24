@@ -360,9 +360,7 @@ def api_set_demo(scenario: str):
 
 @app.post("/api/advice")
 def api_advice():
-    user, error_response, status = require_auth()
-    if user is None:
-        return error_response, status
+    user = current_user()  # вход необязателен: гости тоже получают совет
 
     if not _load_api_key():
         return jsonify({"error": "Ключ DeepSeek не настроен на сервере."}), 500
@@ -406,17 +404,18 @@ def api_advice():
     part = str(parsed.get("part") or "").strip()
     cost = str(parsed.get("cost") or "").strip()
 
-    database.save_diagnostic(
-        user["id"],
-        {
-            "codes": codes,
-            "live": live,
-            "advice": advice,
-            "part": part,
-            "cost": cost,
-            "health": _health_score(hints),
-        },
-    )
+    if user is not None:
+        database.save_diagnostic(
+            user["id"],
+            {
+                "codes": codes,
+                "live": live,
+                "advice": advice,
+                "part": part,
+                "cost": cost,
+                "health": _health_score(hints),
+            },
+        )
 
     return jsonify(
         {
@@ -434,9 +433,7 @@ def api_advice():
 
 @app.post("/api/symptoms")
 def api_symptoms():
-    user, error_response, status = require_auth()
-    if user is None:
-        return error_response, status
+    user = current_user()  # вход необязателен
 
     if not _load_api_key():
         return jsonify({"error": "Ключ DeepSeek не настроен на сервере."}), 500
@@ -486,17 +483,18 @@ def api_symptoms():
         if str(part).strip()
     ]
 
-    database.save_diagnostic(
-        user["id"],
-        {
-            "codes": [],
-            "live": {},
-            "advice": diagnosis,
-            "part": ", ".join(parts),
-            "cost": "",
-            "health": {},
-        },
-    )
+    if user is not None:
+        database.save_diagnostic(
+            user["id"],
+            {
+                "codes": [],
+                "live": {},
+                "advice": diagnosis,
+                "part": ", ".join(parts),
+                "cost": "",
+                "health": {},
+            },
+        )
 
     return jsonify(
         {
