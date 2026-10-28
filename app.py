@@ -33,6 +33,10 @@ from obd_service import DemoSource
 
 app = Flask(__name__)
 
+# Создаём таблицы сразу при импорте: под gunicorn на хостинге
+# блок __main__ не выполняется, и без этого база осталась бы пустой.
+database.init_db()
+
 # ---------- Секретный ключ для подписи токенов ----------
 
 SECRET_FILE = os.path.join(os.path.dirname(__file__), ".secret_key")
@@ -613,5 +617,4 @@ def api_report():
 # ---------- Запуск ----------
 
 if __name__ == "__main__":
-    database.init_db()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8000)), debug=False)
