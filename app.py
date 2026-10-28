@@ -373,8 +373,20 @@ def api_advice():
     }
     symptoms = (data.get("symptoms") or "").strip()
 
-    codes, live = current_source().read()
-    codes = normalize_codes(codes)
+    # Мобильное приложение присылает реальные данные с адаптера;
+    # если их нет (веб-версия) — берём демо-данные сервера.
+    client_codes = data.get("codes")
+    client_live = data.get("live")
+
+    if isinstance(client_codes, list) and isinstance(client_live, dict):
+        codes = normalize_codes([str(code) for code in client_codes])
+        live = {str(key): value for key, value in client_live.items()}
+        source_name = "device"
+    else:
+        codes, live = current_source().read()
+        codes = normalize_codes(codes)
+        source_name = current_source().name
+
     hints = build_hints(codes, live)
     summary = _make_summary(codes, live, vehicle, symptoms)
 
@@ -423,6 +435,8 @@ def api_advice():
             "part": part,
             "cost": cost,
             "links": _build_part_links(part, vehicle),
+            "health": _health_score(hints),
+            "source": source_name,
             "error": None,
             "updated_at": datetime.now().strftime("%H:%M:%S"),
         }
