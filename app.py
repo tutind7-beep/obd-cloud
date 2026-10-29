@@ -132,14 +132,14 @@ def _ask_deepseek(messages: list[dict]) -> tuple[str | None, str | None]:
     )
 
     try:
-        with urllib.request.urlopen(request_obj, timeout=90) as response:
+        with urllib.request.urlopen(request_obj, timeout=60) as response:
             raw = response.read().decode("utf-8")
     except urllib.error.HTTPError as error:
         return None, f"Ошибка нейросети (HTTP {error.code}). Проверьте ключ DeepSeek."
     except urllib.error.URLError as error:
         return None, f"Нет связи с нейросетью: {error.reason}."
     except TimeoutError:
-        return None, "Нейросеть не ответила за 90 секунд."
+        return None, "Нейросеть не ответила за 60 секунд. Попробуйте ещё раз."
 
     try:
         data = json.loads(raw)
@@ -266,7 +266,24 @@ def index():
 
 @app.get("/api/health")
 def api_health():
-    return jsonify({"ok": True})
+    """Быстрая проверка, что сервис проснулся.
+
+    Мобильное приложение вызывает этот адрес перед «тяжёлым» запросом,
+    чтобы разбудить бесплатный инстанс Render.
+    """
+    persistent = bool(os.environ.get("OBD_DB_FILE"))
+    return jsonify(
+        {
+            "ok": True,
+            "storage": "persistent" if persistent else "temporary",
+            "storage_note": (
+                ""
+                if persistent
+                else "База лежит внутри контейнера: данные исчезнут при перезапуске. "
+                "Для сохранности укажите OBD_DB_FILE на постоянном диске."
+            ),
+        }
+    )
 
 
 # ---------- Регистрация и вход ----------
